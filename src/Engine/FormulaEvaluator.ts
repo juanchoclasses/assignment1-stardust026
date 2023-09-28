@@ -188,65 +188,6 @@ export class FormulaEvaluator {
   }
 
 
-  
-  calculate2(formula: FormulaType): number {
-    let l1 = 0, o1 = 1;
-    let l2 = 1, o2 = 1;
-
-    for (let i = 0; i < formula.length; i++) {
-      let token = formula[i];
-        if (this.isNumber(token)) {
-            let num = Number(token);
-
-            l2 = (o2 == 1 ? l2 * num : l2 / num);
-
-        } else if (token == '(') {
-            let j : number;
-            let cnt = 1;
-
-            for (j = i + 1; j < formula.length; j++) {
-                if (token == '(') cnt++;
-                if (token == ')') cnt--;
-                if (cnt == 0) break;
-            }
-
-            let num = this.calculate2(formula.slice(i + 1, j));
-
-            l2 = (o2 == 1 ? l2 * num : l2 / num);
-
-        } else if (token == '*' || token == '/') {
-            if(i+1 >= formula.length || formula[i+1] == '*' || formula[i+1] == '/' || formula[i+1] == '+' || formula[i+1] == '-'){
-              this._errorOccured = true;
-              this._errorMessage = ErrorMessages.invalidFormula;
-              return 0;
-            }
-            o2 = (token == '*' ? 1 : -1);
-
-        } else if (token == '+' || token == '-') {
-          if(i+1 >= formula.length || formula[i+1] == '*' || formula[i+1] == '/' || formula[i+1] == '+' || formula[i+1] == '-'){
-            this._errorOccured = true;
-            this._errorMessage = ErrorMessages.invalidFormula;
-            return 0;
-          }
-            l1 = l1 + o1 * l2;
-            o1 = (token == '+' ? 1 : -1);
-
-            l2 = 1; o2 = 1;
-        } else if (this.isCellReference(token)){
-          let [value, error] = this.getCellValue(token);
-          if (error !== "") {
-            this._errorOccured = true;
-            this._errorMessage = error;
-            return 0;
-          }
-          l2 = (o2 == 1 ? l2 * value : l2 / value);
-        }
-    }
-
-    return (l1 + o1 * l2);
-  }
-
-
 
   /**
    * 
