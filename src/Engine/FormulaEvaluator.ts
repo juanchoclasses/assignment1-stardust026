@@ -48,38 +48,8 @@ export class FormulaEvaluator {
 
     // set the this._result to the length of the formula
 
-    this._result = formula.length;
-    this._errorMessage = "";
+    this._result = this.calculate(formula);
 
-    switch (formula.length) {
-      case 0:
-        this._errorMessage = ErrorMessages.emptyFormula;
-        break;
-      case 7:
-        this._errorMessage = ErrorMessages.partial;
-        break;
-      case 8:
-        this._errorMessage = ErrorMessages.divideByZero;
-        break;
-      case 9:
-        this._errorMessage = ErrorMessages.invalidCell;
-        break;
-      case 10:
-        this._errorMessage = ErrorMessages.invalidFormula;
-        break;
-      case 11:
-        this._errorMessage = ErrorMessages.invalidNumber;
-        break;
-      case 12:
-        this._errorMessage = ErrorMessages.invalidOperator;
-        break;
-      case 13:
-        this._errorMessage = ErrorMessages.missingParentheses;
-        break;
-      default:
-        this._errorMessage = "";
-        break;
-    }
   }
 
   public get error(): string {
@@ -90,6 +60,191 @@ export class FormulaEvaluator {
     return this._result;
   }
 
+  calculate(formula: FormulaType): number {
+    const stack:number[] = [];
+    let num = 0;
+    let sign = '+';
+    this._errorMessage = "";
+    const n:number = formula.length;
+
+    // if the formula is empty return empty formula error
+    if(n === 0){
+      this._errorOccured = true;
+      this._errorMessage = ErrorMessages.emptyFormula;
+      return 0;
+    }
+    
+    for (let i = 0; i < n; i++) {
+        let current = formula[i];
+        // if the current token is a number, convert it to a number            
+        if (this.isNumber(current)) {
+            num = Number(current);
+        } 
+
+        // if the current token is a cell reference, get the value of the cell
+        else if (this.isCellReference(current)){
+          let [value, error] = this.getCellValue(current);
+          if (error !== "") {
+            this._errorOccured = true;
+            this._errorMessage = error;
+          }
+          num = value;
+        }
+        // if the current token is a left brace, find the matching right brace
+        else if (current == '(') {
+            let j = i + 1;
+            let braces = 1;
+            for (; j < n; j++) {
+                if (formula[j] == '(') ++braces;
+                if (formula[j] == ')') --braces;
+                if (braces == 0) break;
+            }
+            if (braces != 0){
+              this._errorOccured = true;
+              this._errorMessage = ErrorMessages.missingParentheses;
+              break;
+            }
+            if(i+1 === j){
+              this._errorOccured = true;
+              this._errorMessage = ErrorMessages.invalidFormula;
+              break;
+            }              
+            num = this.calculate(formula.slice(i + 1, j));
+            i = j;
+        }
+
+        // if the current token is a '@', convert it to a decimal
+        else if(current == '@'){
+          if(i-1 < 0 || !this.isNumber(formula[i-1])|| i+1 >= n || !this.isNumber(formula[i+1])){
+            this._errorOccured = true;
+            this._errorMessage = ErrorMessages.invalidFormula;
+          } else {
+            num = Number(formula[i-1]) + Number("0."+formula[i+1]);
+            i++;
+          }
+        }
+        
+        if (current == '+' || current == '-' || current == '*' || current == '/' || i == n - 1) {
+          if(i+1 < n && (formula[i+1] == '+' || formula[i+1] == '-' || formula[i+1] == '*' || formula[i+1] == '/')){
+            this._errorOccured = true;
+            this._errorMessage = ErrorMessages.invalidFormula;
+          }
+            switch (sign) {
+                case '+':
+                    stack.push(num);
+                    break;
+                case '-':
+                    stack.push(-num);
+                    break;
+                case '*':
+                    var value: number | undefined = stack.pop();
+                    if(value != undefined){
+                    stack.push(value * num);
+                    }
+                    break;
+                case '/':
+                    var value: number | undefined = stack.pop();
+                    if(num == 0){
+                      this._errorOccured = true;
+                      this._errorMessage = ErrorMessages.divideByZero;
+                      return Infinity;
+                    }
+                    if(value != undefined){
+                    stack.push(value / num);
+                    }
+                    break;
+            }
+            num = 0;
+            sign = current;
+        }
+  }
+  //if the formula end with an operator return invalid formula error
+  if(formula[n-1] == '+' || formula[n-1] == '-' || formula[n-1] == '*' || formula[n-1] == '/'){
+    this._errorOccured = true;
+    this._errorMessage = ErrorMessages.invalidFormula;
+  }
+
+  //if the formula starts with an operator (except '-') return invalid formula error
+  if(formula[0] == '+' || formula[0] == '*' || formula[0] == '/'){
+    this._errorOccured = true;
+    this._errorMessage = ErrorMessages.invalidFormula;
+  }
+
+  if(stack.length === 0){
+    return num;
+  }
+  return this.getResult(stack);
+  }
+
+  getResult(s: number[]): number {
+    let result = 0;
+    if (s.length == 0) {
+      return 0;
+    }
+    for (let i = 0; i < s.length; i++) {
+      result += s[i];
+    }
+    return result;
+  }
+
+
+  
+  calculate2(formula: FormulaType): number {
+    let l1 = 0, o1 = 1;
+    let l2 = 1, o2 = 1;
+
+    for (let i = 0; i < formula.length; i++) {
+      let token = formula[i];
+        if (this.isNumber(token)) {
+            let num = Number(token);
+
+            l2 = (o2 == 1 ? l2 * num : l2 / num);
+
+        } else if (token == '(') {
+            let j : number;
+            let cnt = 1;
+
+            for (j = i + 1; j < formula.length; j++) {
+                if (token == '(') cnt++;
+                if (token == ')') cnt--;
+                if (cnt == 0) break;
+            }
+
+            let num = this.calculate2(formula.slice(i + 1, j));
+
+            l2 = (o2 == 1 ? l2 * num : l2 / num);
+
+        } else if (token == '*' || token == '/') {
+            if(i+1 >= formula.length || formula[i+1] == '*' || formula[i+1] == '/' || formula[i+1] == '+' || formula[i+1] == '-'){
+              this._errorOccured = true;
+              this._errorMessage = ErrorMessages.invalidFormula;
+              return 0;
+            }
+            o2 = (token == '*' ? 1 : -1);
+
+        } else if (token == '+' || token == '-') {
+          if(i+1 >= formula.length || formula[i+1] == '*' || formula[i+1] == '/' || formula[i+1] == '+' || formula[i+1] == '-'){
+            this._errorOccured = true;
+            this._errorMessage = ErrorMessages.invalidFormula;
+            return 0;
+          }
+            l1 = l1 + o1 * l2;
+            o1 = (token == '+' ? 1 : -1);
+
+            l2 = 1; o2 = 1;
+        } else if (this.isCellReference(token)){
+          let [value, error] = this.getCellValue(token);
+          if (error !== "") {
+            this._errorOccured = true;
+            this._errorMessage = error;
+            return 0;
+          }
+          l2 = (o2 == 1 ? l2 * value : l2 / value);
+        }
+    }
+
+    return (l1 + o1 * l2);
+  }
 
 
 
