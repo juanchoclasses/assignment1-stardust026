@@ -82,6 +82,7 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
    * the other buttons do require asynchronous processing and so the function is marked async
    */
   async function onCommandButtonClick(text: string): Promise<void> {
+    spreadSheetClient.UserAlert();
 
 
     switch (text) {
@@ -116,6 +117,7 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
    * 
    * */
   function onButtonClick(event: React.MouseEvent<HTMLButtonElement>): void {
+    spreadSheetClient.UserAlert();
 
     const text = event.currentTarget.textContent;
     let trueText = text ? text : "";
@@ -136,6 +138,7 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
    * If the edit status is false then it will ask the machine to update the current formula.
    */
   function onCellClick(event: React.MouseEvent<HTMLButtonElement>): void {
+    spreadSheetClient.UserAlert();
 
     const cellLabel = event.currentTarget.getAttribute("cell-label");
     // calculate the current row and column of the clicked on cell
