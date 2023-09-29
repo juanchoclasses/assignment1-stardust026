@@ -382,6 +382,10 @@ class SpreadSheetClient {
         }
 
     }
+
+    /**
+     * Displays an alert if the user name is empty.
+     */
     public UserAlert(): void {
         if(this._userName.length === 0){
             alert("Please enter a user name");
