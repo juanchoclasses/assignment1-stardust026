@@ -59,7 +59,12 @@ export class FormulaEvaluator {
   public get result(): number {
     return this._result;
   }
-
+  
+  /**
+   * Calculates the result of a given formula.
+   * @param formula An array of tokens representing the formula to be evaluated.
+   * @returns The numerical result of the formula.
+   */
   calculate(formula: FormulaType): number {
     const stack:number[] = [];
     let num = 0;
@@ -124,7 +129,9 @@ export class FormulaEvaluator {
           }
         }
         
+        // if the current token is an operator, push the number to the stack
         if (current == '+' || current == '-' || current == '*' || current == '/' || i == n - 1) {
+          //if the next token is an operator return invalid formula error
           if(i+1 < n && (formula[i+1] == '+' || formula[i+1] == '-' || formula[i+1] == '*' || formula[i+1] == '/')){
             this._errorOccured = true;
             this._errorMessage = ErrorMessages.invalidFormula;
@@ -144,6 +151,7 @@ export class FormulaEvaluator {
                     break;
                 case '/':
                     var value: number | undefined = stack.pop();
+                    //if the divisor is zero return divide by zero error
                     if(num == 0){
                       this._errorOccured = true;
                       this._errorMessage = ErrorMessages.divideByZero;
@@ -170,12 +178,21 @@ export class FormulaEvaluator {
     this._errorMessage = ErrorMessages.invalidFormula;
   }
 
+  //if the stack is empty return the number
   if(stack.length === 0){
     return num;
   }
+  //if the stack is not empty, call getResult
   return this.getResult(stack);
   }
 
+
+  /**
+   * Calculates the sum of an array of numbers.
+   * 
+   * @param s An array of numbers to sum.
+   * @returns The sum of the numbers in the array.
+   */
   getResult(s: number[]): number {
     let result = 0;
     if (s.length == 0) {
